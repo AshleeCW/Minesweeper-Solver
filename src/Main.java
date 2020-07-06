@@ -4,20 +4,14 @@ import java.util.Arrays;
 public class Main {
 
 	public static void main(String[] args) {
-		 
-		Minefield mineField = new Minefield(13, "1 12    ",
-				 "1   3  2",
-				 "  3  5 3",
-				 "1    5  ",
-				 "23 3   1",
-				 "  2122  ",
-				 "2    1  ",
-				 "  1   0 ");
+
+		Minefield mineField = new Minefield(13, "1 12    ", "1   3  2", "  3  5 3", "1    5  ", "23 3   1", "  2122  ",
+				"2    1  ", "  1   0 ");
 
 		mineField.backtrackSolve();
 		System.out.println(mineField.isConsistent());
 
-		System.out.println(mineField);
+		System.out.println(mineField.toString());
 
 	}
 
@@ -25,8 +19,8 @@ public class Main {
 		int mineCount;
 		int width;
 		int height;
-		int[][] numbers;
-		Boolean[][] isMine;
+		int[][] numbers; // grid of numbers for field
+		Boolean[][] isMine; // record of each cell true = mine, false = not mine, null = unsure
 
 		public Minefield(int mineCount, String... clues) {
 			width = clues[0].length();
@@ -38,15 +32,16 @@ public class Main {
 				for (int j = 0; j < width; j++) {
 					char c = clues[i].charAt(j);
 					if (c == ' ') {
-						numbers[j][i] = 9;
+						numbers[j][i] = 9; // making any empty space into a 9 to make an int grid
 					} else {
-						numbers[j][i] = Integer.parseInt(new String(new char[] { c }));
+						numbers[j][i] = Integer.parseInt(new String(new char[] { c })); // take char from string and
+																						// insert number into grid if
+																						// number
 					}
 				}
-
 			}
 
-			isMine = new Boolean[width][height];
+			isMine = new Boolean[width][height]; // for setting boolean at position of cell
 
 			for (int i = 0; i < height; i++) {
 				for (int j = 0; j < width; j++) {
@@ -59,6 +54,7 @@ public class Main {
 			}
 		}
 
+		// create clone
 		public Minefield(Minefield toCopy) {
 			mineCount = toCopy.mineCount;
 			width = toCopy.width;
@@ -73,6 +69,7 @@ public class Main {
 			}
 		}
 
+		// check to see if the simplesolve results are consistant with what
 		public boolean isConsistent() {
 			int totalMineCount = 0;
 			int totalSpaceCount = 0;
@@ -80,22 +77,24 @@ public class Main {
 			for (int i = 0; i < height; i++) {
 				for (int j = 0; j < width; j++) {
 
-					if (isMine[j][i] != null) {
-						if (isMine[j][i]) {
-							totalMineCount += 1;
-						} else {
-							totalSpaceCount += 1;
-						}
-					}
+//					if (isMine[j][i] != null) {
+//						if (isMine[j][i]) {
+//							totalMineCount += 1;
+//						} else {
+//							totalSpaceCount += 1;
+//						}
+//					}
 
-					int clue = numbers[j][i];
-					if (clue == 9) {
+					int numberOfSurroundingMines = numbers[j][i];
+					if (numberOfSurroundingMines == 9) { // 9 means hasn't been looked at yet, end this method and keep
+															// checking for 9s in
 						continue;
 					}
 
 					int definitelyMines = 0;
 					int definitelySpaces = 0;
-
+					// looking around the cell in question. Maybe use the numberOfSurroundingMines
+					// here to check for if any other search has tagged the cell?
 					for (int dI = -1; dI <= 1; dI++) {
 						for (int dJ = -1; dJ <= 1; dJ++) {
 							try {
@@ -115,35 +114,32 @@ public class Main {
 					int minimumMines = definitelyMines;
 					int maximumMines = 9 - definitelySpaces;
 
-					if (clue < minimumMines || clue > maximumMines) {
+					if (numberOfSurroundingMines < minimumMines || numberOfSurroundingMines > maximumMines) {
 						return false;
 					}
 
 				}
 			}
 
-			int totalMinimumMines = totalMineCount;
-			int totalMaximumMines = width * height - totalSpaceCount;
-
 			return true; // totalMinimumMines <= mineCount && mineCount <= totalMaximumMines;
 		}
 
+		/*
+		 * solve minefield and then go over with a throwaway board and compare
+		 * alternative settings. If throwaway cells becomes consistant then change main
+		 * field and call simplesolve again to see how it alters neighbouring fields.
+		 */
 		public void backtrackSolve() {
 			simpleSolve();
 			for (int i = 0; i < height; i++) {
 				for (int j = 0; j < width; j++) {
-					if (!isConsistent()) {
-						assert isConsistent();
-						throw new AssertionError("inconsistent");
-					}
-
 					if (isMine[j][i] != null) {
 						continue;
 					}
 
-					Minefield throwaway;
-
-					throwaway = new Minefield(this);
+					// create new minefield to compare alternative isMine settings without altering
+					// main fieldS
+					Minefield throwaway = new Minefield(this);
 					throwaway.isMine[j][i] = false;
 					throwaway.simpleSolve();
 					if (!throwaway.isConsistent()) {
@@ -154,7 +150,7 @@ public class Main {
 
 					throwaway = new Minefield(this);
 					throwaway.isMine[j][i] = true;
-					throwaway.simpleSolve();
+					// throwaway.simpleSolve();
 					if (!throwaway.isConsistent()) {
 						isMine[j][i] = false;
 						simpleSolve();
@@ -164,6 +160,7 @@ public class Main {
 			}
 		}
 
+		// method to mark cells as mines
 		public void simpleSolve() {
 			boolean madeProgress = true;
 			while (madeProgress) {
@@ -173,28 +170,29 @@ public class Main {
 					for (int j = 0; j < width; j++) {
 						if (isMine[j][i] != null) {
 							continue;
-						}
-
-						isMine[j][i] = false;
-						if (!isConsistent()) {
-							isMine[j][i] = true;
-							madeProgress = true;
-							continue;
-						}
-
-						isMine[j][i] = true;
-						if (!isConsistent()) {
+						} else { 
 							isMine[j][i] = false;
-							madeProgress = true;
-							continue;
-						}
+							if (!isConsistent()) {
+								isMine[j][i] = true;
+								madeProgress = true;
+								continue;
+							}
 
-						isMine[j][i] = null;
+							isMine[j][i] = true;
+							if (!isConsistent()) {
+								isMine[j][i] = false;
+								madeProgress = true;
+								continue;
+							}
+
+							isMine[j][i] = null;
+						}
 					}
 				}
 			}
 		}
 
+		// builds minefield into an ordered grid for printing to console
 		public String toString() {
 			final StringBuilder stringBuilder = new StringBuilder();
 			for (int i = 0; i < height; i++) {
@@ -202,6 +200,8 @@ public class Main {
 					if (numbers[j][i] != 9) {
 						stringBuilder.append(numbers[j][i]);
 					} else {
+						// if the cell is null leave it blank for next iteration otherwise check if its
+						// a mine again, if yes mark M otherwise mark .
 						stringBuilder.append(isMine[j][i] == null ? ' ' : isMine[j][i] ? 'M' : '.');
 					}
 					stringBuilder.append(' ');
